@@ -37,7 +37,7 @@ export PATH=$CHROMIUM_SRC/third_party/llvm-build/Release+Asserts/bin:$PATH
 export PATH=$CHROMIUM_SRC/native_client/toolchain/linux_x86/pnacl_newlib/bin/pnacl-clang:$PATH
 export CHROMIUM_BUILDTOOLS_PATH=$CHROMIUM_SRC/buildtools
 
-# Do gclient sync. 
+# Do gclient sync.
 if [ "$1" == --sync ] || [ "$1" == sync ];
 then
   export TMP_CLANG_DIR=tmp-clang
@@ -53,7 +53,7 @@ then
     mkdir $TMP_CLANG_DIR
   fi
   cd tmp-clang
-  /usr/lib/icecc/icecc-create-env --clang $CHROMIUM_SRC/third_party/llvm-build/Release+Asserts/bin/clang /usr/lib/icecc/compilerwrapper
+  /opt/icecream/bin/icecc-create-env --clang $CHROMIUM_SRC/third_party/llvm-build/Release+Asserts/bin/clang /opt/icecream/bin/compilerwrapper
   mv *.tar.gz $ICECC_VERSION
   cd ..
   rm -rf $TMP_CLANG_DIR
@@ -66,7 +66,8 @@ fi
 export GN_DEFINES='is_component_build=true'
 export GN_DEFINES=$GN_DEFINES' enable_nacl=false treat_warnings_as_errors=false'
 export GN_DEFINES=$GN_DEFINES' proprietary_codecs=true ffmpeg_branding="Chrome"'
-export GN_DEFINES=$GN_DEFINES' linux_use_bundled_binutils=false clang_use_chrome_plugins=false cc_wrapper="ccache" ffmpeg_use_atomics_fallback=true use_jumbo_build=false '
+# export GN_DEFINES=$GN_DEFINES' linux_use_bundled_binutils=false clang_use_chrome_plugins=false cc_wrapper="ccache" ffmpeg_use_atomics_fallback=true use_jumbo_build=false '
+export GN_DEFINES=$GN_DEFINES' linux_use_bundled_binutils=false clang_use_chrome_plugins=false ffmpeg_use_atomics_fallback=true use_jumbo_build=false '
 export GN_DEFINES=$GN_DEFINES' google_api_key="???" google_default_client_id="??.com" google_default_client_secret="??"'
 timestamp=$(date +"%T")
 echo "[$timestamp] 1. Configuration"
@@ -121,15 +122,15 @@ start_timestamp=$(date +"%T")
 if [ "$1" == Android ];
 then
   echo "[$start_timestamp] 2. Start compiling Chromium on $1 mode with ICECC"
-  time ninja -k 100 -j 100 -C out/"$1" chrome_public_apk
+  time ninja -k 166 -j 166 -C out/"$1" chrome_public_apk
 else
   echo "[$start_timestamp] 2. Start compiling Chromium on $1 mode with ICECC"
   if [ "$2" == all_tests ]
   then
     export ALL_TESTS='unit_tests components_unittests browser_tests cc_unittests blink_tests app_shell_unittests services_unittests content_browsertests webkit_unit_tests'
-    time ninja -k 100 -j 100 -C out/"$1" chrome $ALL_TESTS
+    time ninja -k 166 -j 166 -C out/"$1" chrome $ALL_TESTS
   else
-    time ninja -k 100 -j 100 -C out/"$1" chrome ${@:2}
+    time ninja -k 166 -j 166 -C out/"$1" chrome ${@:2}
   fi
 fi
 
