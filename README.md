@@ -1,5 +1,6 @@
 # ChromiumBuild
 Script to build Chromium faster
+Note: replace your cc_wrapper inside the script
 
 # Usage
 * Sync
