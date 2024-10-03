@@ -5,8 +5,8 @@ then
    echo "Usage : buildChromiumICECC.sh [Build options] [Test modules] [Options]"
    echo ""
    echo "Build options:"
-   echo "  Debug                  Debug build"
-   echo "  Release                Release build"
+   echo "  Debug_chromium                  Debug build"
+   echo "  Release_chromium                Release build"
    echo "  Ozone                  Ozone port build (Only release build)"
    echo "  Arm                    ARM port build (Only release build)"
    echo "  ChromeOS               ChromeOS build (Only debug build)"
@@ -21,21 +21,38 @@ then
    echo ""
    echo "Options:"
    echo " --sync                  buildChromiumICECC.sh --sync"
+   echo " <corenum>               buildChromiumICECC.sh --sync 128"
    exit 1
 fi
 
 export CCACHE_PREFIX=icecc
-export CCACHE_BASEDIR=$HOME/chromium
+export CCACHE_BASEDIR=$HOME/Documents/bchromium-builder/brave-browser
 export CHROME_DEVEL_SANDBOX=/usr/local/sbin/chrome-devel-sandbox
 export ICECC_CLANG_REMOTE_CPP=1
 
 # Please set your path to ICECC_VERSION and CHROMIUM_SRC.
-export ICECC_VERSION=$HOME/chromium/clang.tar.gz
-export CHROMIUM_SRC=$HOME/chromium/src
+export ICECC_VERSION=$HOME/Documents/bchromium-builder/brave-browser/clang.tar.gz
+export CHROMIUM_SRC=$HOME/Documents/bchromium-builder/brave-browser/src
 
 export PATH=$CHROMIUM_SRC/third_party/llvm-build/Release+Asserts/bin:$PATH
 export PATH=$CHROMIUM_SRC/native_client/toolchain/linux_x86/pnacl_newlib/bin/pnacl-clang:$PATH
 export CHROMIUM_BUILDTOOLS_PATH=$CHROMIUM_SRC/buildtools
+
+# Brave release args
+# target_cpu="x64"
+# target_os="linux"
+# is_official_build=true
+# enable_keystone_registration_framework=false
+# ffmpeg_branding="Chrome"
+# enable_widevine=true
+# ignore_missing_widevine_signing_cert=true
+# skip_secondary_abi_for_cq=true
+# cc_wrapper="/home/louis/Documents/bchromium-builder/brave-browser/src/out/redirect_cc/redirect_cc"
+# symbol_level=0
+# is_component_build=false
+# is_debug=false
+# enable_hangout_services_extension=false
+# enable_nacl=false
 
 # Do gclient sync.
 if [ "$1" == --sync ] || [ "$1" == sync ];
@@ -63,25 +80,26 @@ then
 fi
 
 # Set Chromium gn build arguments.
-export GN_DEFINES='is_component_build=true'
+export CC_WRAPPER="icecc"
+export GN_DEFINES='is_official_build=false enable_widevine=true ignore_missing_widevine_signing_cert=true skip_secondary_abi_for_cq=true enable_hangout_services_extension=false'
 export GN_DEFINES=$GN_DEFINES' enable_nacl=false treat_warnings_as_errors=false'
+export GN_DEFINES=$GN_DEFINES' cc_wrapper="/home/louis/Documents/bchromium-builder/brave-browser/src/out/redirect_cc/redirect_cc"'
 export GN_DEFINES=$GN_DEFINES' proprietary_codecs=true ffmpeg_branding="Chrome"'
-# export GN_DEFINES=$GN_DEFINES' linux_use_bundled_binutils=false clang_use_chrome_plugins=false cc_wrapper="ccache" ffmpeg_use_atomics_fallback=true use_jumbo_build=false '
 export GN_DEFINES=$GN_DEFINES' linux_use_bundled_binutils=false clang_use_chrome_plugins=false ffmpeg_use_atomics_fallback=true use_jumbo_build=false '
-export GN_DEFINES=$GN_DEFINES' google_api_key="???" google_default_client_id="??.com" google_default_client_secret="??"'
+# export GN_DEFINES=$GN_DEFINES' linux_use_bundled_binutils=false clang_use_chrome_plugins=false cc_wrapper="icecc" ffmpeg_use_atomics_fallback=true use_jumbo_build=false '
 timestamp=$(date +"%T")
 echo "[$timestamp] 1. Configuration"
 
 # Start building Chromium using the gn configuration.
-if [ "$1" == Debug ];
+if [ "$1" == Debug_chromium ];
 then
   export GN_DEFINES=$GN_DEFINES' dcheck_always_on=true'
   echo "GN_DEFINES: "$GN_DEFINES
-  gn gen out/Debug "--args=is_debug=true $GN_DEFINES"
-elif [ "$1" == Release ];
+  gn gen out/Debug_chromium "--args=is_debug=true chrome_pgo_phase=0 is_component_build=true $GN_DEFINES"
+elif [ "$1" == Release_chromium ];
 then
   echo "GN_DEFINES: "$GN_DEFINES
-  gn gen out/Release "--args=is_debug=false $GN_DEFINES"
+  gn gen out/Release "--args=is_debug=false symbol_level=0 is_component_build=false $GN_DEFINES"
 elif [ "$1" == GCC ];
 then
   echo "GN_DEFINES: "$GN_DEFINES
@@ -119,18 +137,26 @@ fi
 echo ""
 
 start_timestamp=$(date +"%T")
+
+if [ -z "$2" ]; then
+  core_num=128
+else
+  core_num="$2"
+fi
+
+echo "core num is [$core_num]"
 if [ "$1" == Android ];
 then
   echo "[$start_timestamp] 2. Start compiling Chromium on $1 mode with ICECC"
-  time ninja -k 166 -j 166 -C out/"$1" chrome_public_apk
+  time ninja -k $core_num -j $core_num -C out/"$1" chrome_public_apk
 else
   echo "[$start_timestamp] 2. Start compiling Chromium on $1 mode with ICECC"
   if [ "$2" == all_tests ]
   then
     export ALL_TESTS='unit_tests components_unittests browser_tests cc_unittests blink_tests app_shell_unittests services_unittests content_browsertests webkit_unit_tests'
-    time ninja -k 166 -j 166 -C out/"$1" chrome $ALL_TESTS
+    time ninja -k $core_num -j $core_num -C out/"$1" chrome $ALL_TESTS
   else
-    time ninja -k 166 -j 166 -C out/"$1" chrome ${@:2}
+    time ninja -k $core_num -j $core_num -C out/"$1" chrome
   fi
 fi
 
